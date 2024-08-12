@@ -1,81 +1,105 @@
+
 #Network
 /*
- Network component:
- - VPC: 10.0.0.0/16
- - Subnet1: 10.0.10.0/24 - Public
- - Subtnet2: 10.0.20.0/24 - Private
+  - VPC: 10.0.0.0/16
+  - Subnet1: 10.0.10.0/24
+  - Subnet2: 10.0.20.0/24
+  - Subnet3: 10.0.30.0/24
+
+  - Internet Gateway
+  - RouteTable
 */
 
-resource "aws_vpc" "main_vpc" {
-  cidr_block = "10.0.0.0/16"
 
+resource "aws_vpc" "youtube" {
+  cidr_block = "10.0.0.0/16"
   tags = {
-    Name = "main_vpc"
+    Name = "youtube-vpc"
   }
 }
 
-resource "aws_subnet" "public_subnet" {
-  vpc_id            = aws_vpc.main_vpc.id
+resource "aws_subnet" "youtube_sub1" {
+  vpc_id            = aws_vpc.youtube.id
   cidr_block        = "10.0.10.0/24"
+  availability_zone = "us-east-1a"
+  tags = {
+    Name = "youtube_subnet1"
+  }
+}
+
+resource "aws_subnet" "youtube_sub2" {
+  vpc_id            = aws_vpc.youtube.id
+  cidr_block        = "10.0.20.0/24"
   availability_zone = "us-east-1b"
   tags = {
-    Name = "public_subnet"
+    Name = "youtube_subnet2"
   }
 }
 
-resource "aws_subnet" "private_subnet" {
-  vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "10.0.20.0/24"
+resource "aws_subnet" "youtube_sub3" {
+  vpc_id            = aws_vpc.youtube.id
+  cidr_block        = "10.0.30.0/24"
   availability_zone = "us-east-1c"
   tags = {
-    Name = "private_subnet"
+    Name = "youtube_subnet3"
   }
 }
 
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main_vpc.id
+resource "aws_internet_gateway" "youtube_igw" {
+  vpc_id = aws_vpc.youtube.id
+  tags = {
+    Name = "youtube_igw"
+  }
+
+}
+
+resource "aws_route_table" "youtube_rt" {
+  vpc_id = aws_vpc.youtube.id
+  route {
+    cidr_block = "0.0.0.0/24"
+    gateway_id = aws_internet_gateway.youtube_igw.id
+  }
 
   tags = {
-    Name = "igw"
+    Name = "youtube_rt"
   }
 }
 
-resource "aws_route_table" "rt1" {
-  vpc_id = aws_vpc.main_vpc.id
+resource "aws_route_table_association" "youtube_sub1" {
+  subnet_id      = aws_subnet.youtube_sub1.id
+  route_table_id = aws_route_table.youtube_rt.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+}
+
+resource "aws_route_table_association" "youtube_sub2" {
+  subnet_id      = aws_subnet.youtube_sub2.id
+  route_table_id = aws_route_table.youtube_rt.id
+
+}
+
+resource "aws_route_table_association" "youtube_sub3" {
+  subnet_id      = aws_subnet.youtube_sub3.id
+  route_table_id = aws_route_table.youtube_rt.id
+
+}
+
+resource "aws_security_group" "youtube_sg" {
+  name        = "youtube_sg"
+  description = "Allow inbound traffic and all outbound traffic"
+  vpc_id      = aws_vpc.youtube.id
+
+  ingress {
+    description = "ssh"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-resource "aws_route_table" "rt2" {
-  vpc_id = aws_vpc.main_vpc.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
+  egress {
+    description = "Allow traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-resource "aws_eip" "eip" {}
-
-resource "aws_nat_gateway" "natgw" {
-  allocation_id = aws_eip.eip.id
-  subnet_id     = aws_subnet.private_subnet.id
-
-  tags = {
-    Name = "gw NAT"
-  }
-  depends_on = [aws_internet_gateway.igw]
-}
-
-resource "aws_route_table_association" "public_subnet" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.rt1.id
-}
-
-resource "aws_route_table_association" "private_subnet_subnet" {
-  subnet_id      = aws_subnet.public_subnet.id
-  route_table_id = aws_route_table.rt1.id
 }

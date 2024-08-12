@@ -34,11 +34,12 @@ provider "aws" {
   }
 }
 
+
 provider "aws" {
-  alias                       = "secondary"
+  alias                       = "europe"
   access_key                  = "test"
   secret_key                  = "test"
-  region                      = "us-east-1"
+  region                      = "ue-west-1"
   s3_use_path_style           = false
   skip_credentials_validation = true
   skip_metadata_api_check     = true
@@ -74,9 +75,8 @@ provider "aws" {
 terraform {
   required_providers {
     aws = {
-      source                = "hashicorp/aws"
-      version               = "~> 5.0"
-      configuration_aliases = [aws.secondary]
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
   }
 }
