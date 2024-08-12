@@ -19,5 +19,5 @@ variable "create_igw" {
 
 variable "include_ipv4" {
   type = bool
-    default = true 
+  default = true 
 }
